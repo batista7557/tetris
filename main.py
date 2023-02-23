@@ -9,6 +9,7 @@ FPS = 60
 
 pygame.init()
 game_sc = pygame.display.set_mode(GAME_RES)
+pygame.display.set_caption("Tetris")
 clock = pygame.time.Clock()
 
 grid = [pygame.Rect(x * TILE, y * TILE, TILE, TILE) for x in range(W) for y in range(H)]
@@ -24,6 +25,9 @@ figures_pos = [[(-1, 0), (-2, 0), (0, 0), (1, 0)],
 figures = [[pygame.Rect(x + W // 2, y + 1, 1, 1) for x, y in fig_pos] for fig_pos in figures_pos]
 figure_rect = pygame.Rect(0, 0, TILE - 2, TILE - 2)
 field = [[0 for i in range(W)] for j in range(H)]
+
+get_color = lambda : (randrange(30, 256), randrange(30, 256), randrange(30, 256))
+color = get_color()
 
 anim_count, anim_speed, anim_limit = 0, 60, 2000
 figure = deepcopy(choice(figures))
@@ -69,7 +73,8 @@ while True:
                 figure[i].y += 1
                 if not check_borders():
                     for i in range(4):
-                        field[figure_old[i].y][figure_old[i].x] = pygame.Color('white')
+                        field[figure_old[i].y][figure_old[i].x] = color
+                    color = get_color()
                     figure = deepcopy(figure_old)
                     anim_limit = 2000
                     break
@@ -87,6 +92,17 @@ while True:
                 figure = deepcopy(choice(figures))
                 break
 
+    #Checa linhas
+    line = H - 1
+    for row in range(H - 1, -1, -1):
+        count = 0
+        for i in range(W):
+            if field[row][i]:
+                count+=1
+            field[line][i] = field[row][i]
+        if count < W:
+            line -= 1
+
     #Desenhar grid
     [pygame.draw.rect(game_sc, (40, 40, 40), i_rect, 1) for i_rect in grid]
 
@@ -94,7 +110,7 @@ while True:
     for i in range(4):
         figure_rect.x = figure[i].x * TILE
         figure_rect.y = figure[i].y * TILE
-        pygame.draw.rect(game_sc, pygame.Color('white'), figure_rect)
+        pygame.draw.rect(game_sc, color, figure_rect)
 
     #Desenha o campo
     for y, raw in enumerate(field):
@@ -102,6 +118,17 @@ while True:
             if col:
                 figure_rect.x, figure_rect.y = x * TILE, y * TILE
                 pygame.draw.rect(game_sc, col, figure_rect)
+
+    #Game over
+    for i in range(W):
+        if field[0][i]:
+            field = [[0 for i in range(W)] for i in range(H)]
+            anim_count, anim_speed, anim_limit = 0, 60, 2000
+            for i_rect in grid:
+                pygame.draw.rect(game_sc, get_color(), i_rect)
+                game_sc.blit(game_sc, (20, 20))
+                pygame.display.flip()
+                clock.tick(200)
 
     pygame.display.flip()
     clock.tick(FPS)
